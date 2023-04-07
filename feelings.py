@@ -203,11 +203,19 @@ emotions = [
 def sentiment_analyze_emotions(emotions):
     analyzer = SentimentIntensityAnalyzer()
     for e in emotions:
-        name = ("I feel " + e.name + " right now.")
+        name = ("I feel deeply " + e.name + " at the moment.")
+
         vs = analyzer.polarity_scores(name)
         e.strength = vs['compound']
         if e.strength < 0:
             e.negative = True
+
+        if e.strength == 0:
+            name += e.definition
+            vs = analyzer.polarity_scores(name)
+            e.strength = vs['compound']
+            if e.strength < 0:
+                e.negative = True
 
     emotions = normalize(emotions)
     return emotions
@@ -303,8 +311,8 @@ def get_definitions(emotions):
 
     return emotions
 
-emotions = sentiment_analyze_emotions(emotions)
 emotions = get_definitions(emotions)
+emotions = sentiment_analyze_emotions(emotions)
 print_emotions(emotions)
 # emotions.sort(key=lambda x: x.strength, reverse=True)
 
