@@ -299,5 +299,5 @@ def get_definitions(emotions):
 emotions = sentiment_analyze_emotions(emotions)
 emotions.sort(key=lambda x: x.strength, reverse=True)
 
-get_definitions(emotions)
+# get_definitions(emotions)
 plotly_tree_graph(emotions)
