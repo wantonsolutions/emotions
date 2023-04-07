@@ -11,8 +11,10 @@ class e():
         self.negative = False
         self.definition = ""
 
-    def __str__(self):
-        return str(self.name)+":"+str(self.parent)+":"+str(self.strength)+":"+str(self.negative)
+    def __str__(self): 
+
+        return str(self.name)+":"+str(self.parent)+":"+str(self.strength)+":"+str(self.negative) \
+        + ":" + str(self.definition)
 
     def __repr__(self):
         return self.__str__()
@@ -258,12 +260,12 @@ def plotly_tree_graph(emotions):
             colors=intensity,
             colorscale='RdYlBu',
             cmid=0),
+        textinfo="label",
         text=definitions,
     ))
 
     fig.update_layout(margin = dict(t=50, l=25, r=25, b=25))
     fig.write_html("index.html")
-
 
 def get_remote_definition(emotion):
         import requests
@@ -273,7 +275,8 @@ def get_remote_definition(emotion):
             definition = x.json()[0]['meanings'][0]['definitions'][0]['definition']
         else:
             definition = "No definition found"
-
+        print(emotion +":" + definition)
+        return definition
 
 def get_definitions(emotions):
     import pickle
@@ -292,12 +295,17 @@ def get_definitions(emotions):
         else:
             e.definition = get_remote_definition(e.name)
             definitions[e.name] = e.definition
+
+    print(definitions)
     
     with open(filename, 'wb') as handle:
         pickle.dump(definitions, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-emotions = sentiment_analyze_emotions(emotions)
-emotions.sort(key=lambda x: x.strength, reverse=True)
+    return emotions
 
-# get_definitions(emotions)
+emotions = sentiment_analyze_emotions(emotions)
+emotions = get_definitions(emotions)
+print_emotions(emotions)
+# emotions.sort(key=lambda x: x.strength, reverse=True)
+
 plotly_tree_graph(emotions)
