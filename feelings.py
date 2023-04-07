@@ -1,44 +1,7 @@
-# from pattern.en import parse
-# from pattern.en import pprint
-# from pattern.en import sentiment
-
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import numpy as np
 import colorsys
 import matplotlib.pyplot as plt
-
-
-# from flair.models import TextClassifier
-# from flair.data import Sentence
-# import plotly.express as px
-# from IPython.display import display
-# df = px.data.tips()
-
-# display(df)
-
-# fig = px.treemap(df, path=[px.Constant("all"), 'day', 'time', 'sex'], values='total_bill')
-# fig.update_traces(root_color="lightgrey")
-# fig.update_layout(margin = dict(t=50, l=25, r=25, b=25))
-# fig.show()
-
-#emotion
-
-def color_from_sentiment(sentiment):
-    #if the value is 1 or -1, it will be black, adjust
-    if sentiment == 1.0:
-        sentiment-=0.01
-    if sentiment == -1.0:
-        sentiment+=0.01
-    #blue
-    if sentiment >= 0:
-        color = colorsys.rgb_to_hls(sentiment, sentiment, 1)
-    #red
-    else:
-        sentiment = sentiment*-1
-        color = colorsys.rgb_to_hls(1, sentiment, sentiment)
-
-    color_str = str(color[0])+" "+str(color[1])+" "+str(color[2])
-    return color_str
 
 class e():
     def __init__(self, name, parent, strength):
@@ -54,17 +17,6 @@ class e():
     def __repr__(self):
         return self.__str__()
 
-    def dot(self):
-        color = color_from_sentiment(self.strength)
-        color_string = " [fillcolor=\""+color+"\" style=filled ] "
-        # print(color)
-
-        node_string = str(self.name)+ color_string + ";"
-        edge_string = str(self.parent)+" -> "+str(self.name)+";"
-        if self.parent == None:
-            return node_string
-        else:
-            return node_string + "\n" + edge_string
 #used the following for sentiment analysis
 #https://monkeylearn.com/sentiment-analysis-online/
 emotions = [
@@ -244,129 +196,6 @@ emotions = [
     e("ridiculed", "humiliated", -0.8),
 ]
 
-def build_dict_tree(emotions):
-    tree = dict()
-    for e in emotions:
-        if e.parent in tree:
-            tree[e.parent].append(e)
-        else:
-            tree[e.parent] = [e]
-    return tree
-
-position_dict = dict()
-global_counter = 0
-def in_order_traverse(tree, name):
-    global global_counter
-    global position_dict
-    if name in tree:
-        i=0
-        added=False
-        for e in tree[name]:
-            in_order_traverse(tree, e.name)
-            i=i+1
-            if i > len(tree[name])/2 and not added:
-                position_dict[name] = global_counter
-                global_counter= global_counter + 1
-                added=True
-    else:
-        position_dict[name] = global_counter
-        global_counter= global_counter + 1
-
-def traverse_children(tree, name):
-    children = []
-    if name in tree:
-        for e in tree[name]:
-            children.append(e.name)
-            children.extend(traverse_children(tree, e.name))
-    return children
-
-def get_children(emotions, name):
-    tree = build_dict_tree(emotions)
-    children = traverse_children(tree, name)
-    return children
-
-def get_level(emotions, name):
-    edict = emotion_dict(emotions)
-    level = 0
-    while edict[name].parent != "emotion":
-        name = edict[name].parent
-        level = level + 1
-    return level
-
-def get_chain_csv(emotions, name):
-    edict = emotion_dict(emotions)
-    chain = []
-    while edict[name].parent != "emotion":
-        chain = chain + edict[name].parent + ","
-        name = edict[name].parent
-    return chain
-
-def emotion_csv(emotions):
-    for e in emotions:
-        print(get_chain_csv(emotions, e.name))
-
-def recursive_number_of_children(emotions, name):
-    edict = emotion_dict(emotions)
-    if name in edict:
-        count = 0
-        for e in edict[name].children:
-            count = count + recursive_number_of_children(emotions, e)
-        return count + 1
-    else:
-        return 0
-
-def scatter2(emotions):
-    tree = build_dict_tree(emotions)
-    in_order_traverse(tree, "emotion")
-    # print(position_dict)
-    #all positive
-    i=0
-    for e in emotions:
-        if e.strength < 0:
-            emotions[i].strength = abs(emotions[i].strength)
-        print(e.name + " " + str(position_dict[e.name]))
-        i=i+1
-
-    x = []
-    y = []
-    sizes=[]
-    labels = []
-    i=0
-    for e in emotions:
-        x.append(e.strength)
-        y.append(position_dict[e.name])
-        #todo start here I was trying to get node sizes for each of the number of childern a node has
-        sizes.append(recursive_number_of_children(emotions, e.name))
-        labels.append(e.name)
-        i=i+1
-
-    fig, ax = plt.subplots(1,1,figsize=(15,20))
-    ax.scatter(x, y, s=sizes)
-    for i, txt in enumerate(labels):
-        ax.annotate(txt, (x[i], y[i]), fontsize=15)
-    
-    edges = create_edges(emotions)
-    for e in edges:
-        level = get_level(emotions, e[2])
-        ax.plot([e[0][0], e[1][0]], [e[0][1], e[1][1]], color='black', linestyle=':', linewidth=1)
-    plt.savefig('emotion_scatter2.pdf')
-
-def emotion_dict(emotions):
-    edict = dict()
-    for e in emotions:
-        edict[e.name] = e
-    return edict
-
-def create_edges(emotions):
-    edict = emotion_dict(emotions) 
-    edges=[]
-    for e in emotions:
-        if e.name != "emotion":
-            print(e)
-            parent = edict[e.parent]
-            child = edict[e.name]
-            edges.append(((parent.strength, position_dict[e.parent]), (child.strength, position_dict[e.name]), e.name))
-    return edges
 
 # classifier = TextClassifier.load('en-sentiment')
 def sentiment_analyze_emotions(emotions):
@@ -374,74 +203,12 @@ def sentiment_analyze_emotions(emotions):
     for e in emotions:
         name = ("I feel " + e.name + " right now.")
         vs = analyzer.polarity_scores(name)
-        # print("{:-<65} {}".format(e.name, str(vs)))
-        # print(e.name + " " + str(vs['compound']))
         e.strength = vs['compound']
         if e.strength < 0:
             e.negative = True
 
     emotions = normalize(emotions)
-    # emotions = filter(emotions,0.1)
     return emotions
-
-def digraph(emotions):
-    f = open("emotions.dot", "w")
-    f.write("digraph emotions {\n")
-    for e in emotions:
-        f.write("\t" +e.dot() + "\n")
-    f.write("}\n")
-    f.close()
-
-def subgraph_generator(emotions, name):
-    children = get_children(emotions, name)
-    child_str = ""
-    i=0
-    for c in children:
-        child_str += c
-        if i < len(children)-1:
-            child_str = child_str + " -> "
-        i=i+1
-    return child_str
-
-def nested_digraph_root(emotions):
-    #todo start here https://stackoverflow.com/questions/7777722/top-down-subgraphs-left-right-inside-subgraphs
-    f = open("emotions_nested.dot", "w")
-    f.write("digraph emotions {\n")
-    f.write("rankdir=\"TB\"\n")
-    # f.write("rankdir=\"LR\"\n")
-    # f.write("emotions\n")
-
-    nested_digraph = digraph_nested(emotions, "emotion")
-
-    f.write(nested_digraph)
-    # f.write("}\n")#emotion subcluster
-
-    f.write("}\n")
-    f.close()
-
-def digraph_nested(emotions, name):
-    # edict = emotion_dict(emotions)
-    tree = build_dict_tree(emotions)
-    subgraph = subgraph_generator(emotions, name)
-
-    ret_val = ""
-
-    if subgraph == "":
-        return "\n"
-
-    ret_val += "subgraph cluster_" + name + " {\n"
-    ret_val += "newrank=true\n"
-    # ret_val += "rankdir=LR\n"
-    ret_val += "rankdir=\"LR\"\n"
-    ret_val += "edge [style=invis]"
-
-    if name in tree:
-        for children in tree[name]:
-            ret_val += digraph_nested(emotions, children.name)
-    
-    ret_val += subgraph + "\n"
-    ret_val += "}\n"
-    return ret_val
 
 def print_emotions(emotions):
     for e in emotions:
@@ -465,52 +232,8 @@ def normalize(emotions):
         i = i + 1
     return emotions
 
-def filter(emotions, threshold):
-    filtered = []
-    for e in emotions:
-        if abs(e.strength) > threshold:
-            filtered.append(e)
-    return filtered
-
-def scatter(emotions):
-    x = []
-    y = []
-    labels = []
-    i=0
-    for e in emotions:
-        x.append(e.strength)
-        y.append(i)
-        labels.append(e.name)
-        i=i+1
-
-    fig, ax = plt.subplots(1,1,figsize=(15,20))
-    ax.scatter(x, y)
-    for i, txt in enumerate(labels):
-        ax.annotate(txt, (x[i], y[i]))
-    plt.savefig('emotion_scatter.pdf')
-
-def nested_tree_graph():
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-
-    #We will generate a small and simple data frame for plotting the treemaps so that it is easier to compare the syntax and look of these plots in different libraries.
-    colors=['#fae588','#f79d65','#f9dc5c','#e8ac65','#e76f51','#ef233c','#b7094c'] #color palette
-    data = {'labels': ["A","B","C","D","E","F","G"],
-            'values':[10,20,20,35,10,25,45]}
-    df = pd.DataFrame(data)
-    print(df) #print the dataframe
-
-
-    import squarify
-    sns.set_style(style="whitegrid") # set seaborn plot style
-    sizes= df["values"].values# proportions of the categories
-    label=df["labels"]
-    squarify.plot(sizes=sizes, label=label, alpha=0.6,color=colors).set(title='Treemap with Squarify')
-    plt.axis('off')
-    plt.show()
-
+#https://plotly.com/python/treemaps/
+#this page describes how to make a treemap with plotly
 def plotly_tree_graph(emotions):
     import plotly.express as px
     import plotly.graph_objects as go
@@ -526,48 +249,21 @@ def plotly_tree_graph(emotions):
         values.append(1000 + e.strength)
         intensity.append(e.strength)
         definitions.append(e.definition)
-        # values.append(abs(int(e.strength * 100))+1 )
-
-    # print(values)
-    # fig = px.treemap(
-    #     labels = names,
-    #     parents = parents,
-    #     values = values,
-    #     branchvalues= 'total',
-    # )
-    # # fig.update_traces(root_color="lightgrey")
-    # # fig.update_layout(margin = dict(t=50, l=25, r=25, b=25))
-    # fig.show()
-
-    # values = [0, 11, 12, 13, 14, 15, 20, 30]
-    # labels = ["container", "A1", "A2", "A3", "A4", "A5", "B1", "B2"]
-    # parents = ["", "container", "A1", "A2", "A3", "A4", "container", "B1"]
 
     fig = go.Figure(go.Treemap(
         labels = names,
-        # values = values,
         parents = parents,
-        # color = intensity,
-        # color_continuous_scale = 'RdBu',
-        # color_continuous_midpoint = 0,
         sort=True,
         marker=dict(
             colors=intensity,
-            # colorscale='RdBu',
-            # colorscale='Picnic',
             colorscale='RdYlBu',
             cmid=0),
         text=definitions,
-
-        # marker_colors = ["pink", "royalblue", "lightgray", "purple", 
-        #                 "cyan", "lightgray", "lightblue", "lightgreen"]
     ))
 
     fig.update_layout(margin = dict(t=50, l=25, r=25, b=25))
-    # fig.show()
-    fig.write_html("emotion_tree.html")
+    fig.write_html("index.html")
 
-# nested_tree_graph()
 
 def get_remote_definition(emotion):
         import requests
@@ -600,25 +296,8 @@ def get_definitions(emotions):
     with open(filename, 'wb') as handle:
         pickle.dump(definitions, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    
-
 emotions = sentiment_analyze_emotions(emotions)
 emotions.sort(key=lambda x: x.strength, reverse=True)
-# emotion_csv(emotions)
 
 get_definitions(emotions)
-# exit(1)
-
 plotly_tree_graph(emotions)
-#todo I can do nested subgraphs using this syntax in dot
-#https://stackoverflow.com/questions/69399948/graphviz-nested-subgraph-orientation
-#this enables me to sort, and to use "tremap" like layouts for a decent layout.
-
-# digraph(emotions)
-# digraph_nested(emotions, "happy")
-nested_digraph_root(emotions)
-# scatter(emotions)
-# scatter2(emotions)
-
-
-
