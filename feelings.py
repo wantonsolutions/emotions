@@ -214,6 +214,7 @@ def sentiment_analyze_emotions(emotions):
             name += e.definition
             vs = analyzer.polarity_scores(name)
             e.strength = vs['compound']
+            e.strength = e.strength * 0.5
             if e.strength < 0:
                 e.negative = True
 
